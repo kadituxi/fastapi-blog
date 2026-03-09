@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -19,7 +20,9 @@ class ProductUpdateSchema(BaseProductSchema):
     description: Optional[str] = None
     qtd_stock: Optional[int] = None
     price: Optional[float] = None
-    
+
 
 class ProductResponseSchema(BaseProductSchema):
     id: int
+    created_at: datetime
+    updated_at: Optional[datetime]
