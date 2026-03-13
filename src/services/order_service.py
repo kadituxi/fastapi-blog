@@ -17,4 +17,7 @@ def create_order(session: Session, payload: OrderCreateSchema, token: TokenSchem
         )
     user = get_user(token.access_token, session)
     order = order_repository.create_order(session, payload, user.id)
+    product = order.product
+    product.qtd_stock -= payload.qtd
+    session.commit()
     return order
