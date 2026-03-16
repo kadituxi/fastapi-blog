@@ -1,6 +1,9 @@
+from typing import Optional
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from models.product import Product
 from repositories import order_repository
 from schemas.order_schema import OrderCreateSchema
 from schemas.user_schema import TokenSchema
@@ -9,7 +12,7 @@ from services.user_service import get_user
 
 
 def create_order(session: Session, payload: OrderCreateSchema, token: TokenSchema):
-    product = get_product_by_id(session, payload.product_id)
+    product: Optional[Product] = get_product_by_id(session, payload.product_id)
     if not product or product.qtd_stock < payload.qtd:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
