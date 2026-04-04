@@ -19,3 +19,4 @@ class Order(Base):
 
     product = relationship("Product", backref="orders")
     user = relationship("User", backref="orders")
+

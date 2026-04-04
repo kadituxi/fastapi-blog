@@ -19,3 +19,4 @@ app.include_router(router=orders_routes.orders_router, prefix="/api/v1/orders")
 if __name__ == "__main__":
     # Base.metadata.create_all(engine)
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+
