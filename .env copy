@@ -2,7 +2,7 @@
 DB_USERNAME=
 DB_PASSWORD=
 DB_HOST=localhost
-DB_NAME=orders_api
+DB_NAME=fastapi_blog
 DB_PORT=5432
 
 # Secrets and KEYS
