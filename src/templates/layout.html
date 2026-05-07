@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>
+    FastAPI Blog |
+    {% if title %} {{ title }} {% endif %}
+  </title>
+
+  <meta name="description" content="FastAPI Blog">
+  <meta name="author" content="Kadituxi">
+  <meta property="og:title" content="FastAPI Blog">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+  <meta property="og:image:alt" content="">
+
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='css/main.css') }}">
+</head>
+<body>
+    <nav>
+      <div class="logo">
+        <h1>FastAPI Blog</h1>
+      </div>
+      <ul>
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('home') }}">Posts</a></li>
+      </ul>
+    </nav>
+
+    {% block content %}
+
+    {% endblock %}
+</body>
+</html>
