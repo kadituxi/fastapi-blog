@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import ConfigDict, BaseModel, Field, EmailStr
 
 
@@ -9,7 +7,7 @@ class UserBaseSchema(BaseModel):
 
 
 class UserCreateSchema(UserBaseSchema):
-    pass
+    password: str = Field(min_length=8)
 
 
 class UserResponseSchema(UserBaseSchema):
@@ -20,19 +18,13 @@ class UserResponseSchema(UserBaseSchema):
     image_path: str
 
 
-class PostBaseSchema(BaseModel):
-    title: str = Field(min_length=5, max_length=100)
-    content: str = Field(min_length=10)
-
-
-class PostCreateSchema(PostBaseSchema):
+class UserUpdateSchema(BaseModel):
+    username: str | None = Field(default=None, min_length=1, max_length=50)
+    email: EmailStr | None = Field(default=None, min_length=10, max_length=120)
     user_id: int
+    image_file: str | None = Field(default=None, min_length=5)
 
 
-class PostResponseSchema(PostBaseSchema):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    user_id: int
-    created_at: datetime
-    author: UserResponseSchema
+class TokenSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
