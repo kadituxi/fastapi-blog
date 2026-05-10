@@ -11,7 +11,7 @@ class PostBaseSchema(BaseModel):
 
 
 class PostCreateSchema(PostBaseSchema):
-    user_id: int
+    pass
 
 
 class PostUpdateSchema(BaseModel):

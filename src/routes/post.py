@@ -6,8 +6,9 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db
-from models.models import Post, User
+from models.models import Post
 from schemas.post import PostCreateSchema, PostResponseSchema, PostUpdateSchema
+from utils.auth import CurrentUser
 
 router = APIRouter(tags=["Posts"])
 
@@ -24,16 +25,12 @@ async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
     "/", response_model=PostResponseSchema, status_code=status.HTTP_201_CREATED
 )
 async def create_post(
-    payload: PostCreateSchema, db: Annotated[AsyncSession, Depends(get_db)]
+    payload: PostCreateSchema,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    stmt = select(User).where(User.id == payload.user_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
-        )
     post = Post(**payload.model_dump())
+    post.user_id = current_user.id
     db.add(post)
     await db.commit()
     await db.refresh(post, attribute_names=["author"])

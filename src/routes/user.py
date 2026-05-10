@@ -116,7 +116,6 @@ async def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    print(user_id)
     try:
         user_id_int = int(user_id)
     except (TypeError, ValueError):
