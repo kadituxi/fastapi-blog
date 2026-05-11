@@ -1,0 +1,172 @@
+from datetime import timedelta
+from typing import Annotated, Optional
+
+from fastapi import APIRouter, Depends, status, HTTPException, UploadFile
+from fastapi.security import OAuth2PasswordRequestForm
+from PIL import UnidentifiedImageError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
+
+from config import settings
+from database.database import get_db
+from models.models import User
+from schemas.post_schemas import UserResponseSchema
+from schemas.user_schemas import UserCreateSchema, UserUpdateSchema, TokenSchema
+from utils.auth import (
+    create_access_token,
+    CurrentUser,
+    hash_password,
+    verify_password,
+)
+from utils.image import delete_profile_image, process_image_file
+
+router = APIRouter(tags=["User"])
+
+
+@router.post(
+    "/", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED
+)
+async def create_user(
+    payload: UserCreateSchema, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    user = User(**payload.model_dump())
+    user.password = hash_password(user.password)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.post("/token", response_model=TokenSchema)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    stmt = select(User).where(User.email == form_data.username)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
+        )
+    if not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User UNAUTHORIZED"
+        )
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        {"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    return TokenSchema(access_token=access_token)
+
+
+@router.get("/me", response_model=UserResponseSchema)
+async def get_current_user(current_user: CurrentUser):
+    return current_user
+
+
+@router.patch("/", response_model=UserResponseSchema)
+async def partitial_user_update(
+    payload: UserUpdateSchema, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    stmt = select(User).where(User.id == payload.user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
+        )
+    user_data = payload.model_dump(exclude_unset=True)
+    user_data.pop("user_id", None)
+    for k, v in user_data.items():
+        setattr(user, k, v)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.get("/{user_id}", response_model=Optional[UserResponseSchema])
+async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
+        )
+    return user
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
+        )
+    old_filename = user.image_file
+    await db.delete(user)
+    await db.commit()
+    if old_filename:
+        delete_profile_image(old_filename)
+
+
+@router.patch("/{user_id}/picture", response_model=UserResponseSchema)
+async def update_profile_picture(
+    user_id: int,
+    file: UploadFile,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this user's picture",
+        )
+    content = await file.read()
+    if len(content) > settings.max_upload_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size is {settings.max_upload_size_bytes // (1024 * 1024)}MB",
+        )
+    try:
+        new_filename = await run_in_threadpool(process_image_file, content)
+    except UnidentifiedImageError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image file. Please upload a valid image (JPEG, PNG, GIF, WebP)",
+        ) from err
+    old_filename = current_user.image_file
+    current_user.image_file = new_filename
+    await db.commit()
+    await db.refresh(current_user)
+    if old_filename:
+        delete_profile_image(old_filename)
+    return current_user
+
+
+@router.delete("/{user_id}/picture", response_model=UserResponseSchema)
+async def delete_user_picture(
+    user_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this user's picture",
+        )
+    old_filename = current_user.image_file
+    if not old_filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No profile picture to delete",
+        )
+    current_user.image_file = None
+    await db.commit()
+    await db.refresh(current_user)
+    delete_profile_image(old_filename)
+    return current_user

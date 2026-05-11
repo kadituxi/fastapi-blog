@@ -1,11 +1,11 @@
-from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from config import settings
 from database.database import Base, engine
-from routes import post, user
+from routes import post_routes, user_routes
 
 
 @asynccontextmanager
@@ -25,10 +25,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-BASE_DIR = Path(__file__).parent
 
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-app.mount("/media", StaticFiles(directory=BASE_DIR / "media"), name="media")
+app.mount("/static", StaticFiles(directory=settings.base_dir / "static"), name="static")
+app.mount("/media", StaticFiles(directory=settings.base_dir / "media"), name="media")
 
 
 @app.get("/api/helth", response_model=dict)
@@ -36,5 +35,5 @@ def get_api_status():
     return {"status": "Helth"}
 
 
-app.include_router(user.router, prefix="/api/users")
-app.include_router(post.router, prefix="/api/posts")
+app.include_router(user_routes.router, prefix="/api/users")
+app.include_router(post_routes.router, prefix="/api/posts")

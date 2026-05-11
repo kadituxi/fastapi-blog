@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db
 from models.models import Post
-from schemas.post import PostCreateSchema, PostResponseSchema, PostUpdateSchema
+from schemas.post_schemas import PostCreateSchema, PostResponseSchema, PostUpdateSchema
 from utils.auth import CurrentUser
 
 router = APIRouter(tags=["Posts"])

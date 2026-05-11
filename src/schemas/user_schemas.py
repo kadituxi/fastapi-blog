@@ -22,7 +22,6 @@ class UserUpdateSchema(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, min_length=10, max_length=120)
     user_id: int
-    image_file: str | None = Field(default=None, min_length=5)
 
 
 class TokenSchema(BaseModel):
