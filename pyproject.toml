@@ -1,10 +1,11 @@
 [project]
 name = "fastapi-blog"
 version = "0.1.0"
-description = "Add your description here"
+description = "API for my FastAPI's Blog "
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiosmtplib>=5.1.0",
     "aiosqlite>=0.22.1",
     "annotated-doc==0.0.4",
     "annotated-types==0.7.0",
