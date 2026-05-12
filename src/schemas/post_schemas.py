@@ -27,3 +27,11 @@ class PostResponseSchema(PostBaseSchema):
     user_id: int
     created_at: datetime
     author: UserResponseSchema
+
+
+class PaginatedPostResponse(BaseModel):
+    posts: list[PostResponseSchema]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool
