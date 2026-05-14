@@ -16,12 +16,13 @@ class Settings(BaseSettings):
 
     reset_token_expire_minutes: int = 60
 
-    mail_server: str = "localhost"
-    mail_port: int = 587
-    mail_username: str = ""
-    mail_password: SecretStr = SecretStr("")
-    mail_from: str = "noreply@example.com"
-    mail_use_tls: bool = True
+    mail_server: str
+    mail_port: int
+    mail_username: str
+    mail_password: SecretStr
+    mail_from: str
+    mail_use_tls: bool
+    frontend_url: str
 
 
 settings = Settings()  # type: ignore[call-arg]
