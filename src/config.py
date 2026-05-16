@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     max_upload_size_bytes: int = 5 * 1024 * 1024
     # items_per_page: int = 10
 
+    database_url: str
+
     reset_token_expire_minutes: int = 60
 
     mail_server: str
@@ -26,3 +28,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()  # type: ignore[call-arg]
+print(settings.database_url)

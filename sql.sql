@@ -1,3 +1,3 @@
-select u.username, u.email, p.title, p.content, p.created_at from users as u join posts as p on u.id = p.user_id;
+-- Active: 1778864862834@@127.0.0.1@5432@fastapi_blog@public
 
-SELECT * FROM posts;
+select * from users;

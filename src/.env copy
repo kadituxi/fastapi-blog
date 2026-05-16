@@ -1,0 +1,14 @@
+# Secrets and KEYS
+SECRET_KEY=
+
+# Database settings
+DATABASE_URL=
+
+# Email settings
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=noreply@fastapiblog.com
+MAIL_USE_TLS=true
+frontend_url=localhost:8000

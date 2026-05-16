@@ -4,15 +4,13 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from config import settings
-from database.database import Base, engine
+from database.database import engine
 from routes import post_routes, user_routes
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     # Shutdown
     await engine.dispose()
