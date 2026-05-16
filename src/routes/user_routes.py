@@ -20,10 +20,11 @@ from database.database import get_db
 from models.models import User, PasswordResetToken
 from schemas.post_schemas import UserResponseSchema
 from schemas.user_schemas import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    TokenSchema,
     UserCreateSchema,
     UserUpdateSchema,
-    TokenSchema,
-    ForgotPasswordRequest,
 )
 from utils.email import send_password_reset_email
 from utils.auth import (
@@ -45,6 +46,17 @@ router = APIRouter(tags=["User"])
 async def create_user(
     payload: UserCreateSchema, db: Annotated[AsyncSession, Depends(get_db)]
 ):
+    stmt = select(User).where(User.email == payload.email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        stmt = select(User).where(User.username == payload.username)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists"
+        )
     user = User(**payload.model_dump())
     user.password = hash_password(user.password)
     db.add(user)
@@ -87,6 +99,7 @@ async def forgot_password(
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    print(payload)
     stmt = select(User).where(User.email == payload.email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
@@ -112,6 +125,42 @@ async def forgot_password(
         )
     return {
         "message": "If an account exists with this email, you will receive password reset instructions"
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: ResetPasswordRequest, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    token_hash = hash_reset_token(payload.token)
+    stmt = select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash)
+    result = await db.execute(stmt)
+    reset_token = result.scalar_one_or_none()
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+    if reset_token.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+        await db.delete(reset_token)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token"
+        )
+    stmt = select(User).where(User.id == reset_token.user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Ivalid or expired token"
+        )
+    user.password = hash_password(payload.new_password)
+    await db.execute(
+        sql_delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
+    )
+    await db.commit()
+    return {
+        "message": "Password reset successfully. You can now log in with your new password."
     }
 
 
